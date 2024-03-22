@@ -11,14 +11,14 @@ var (
 )
 
 type ChessMan struct {
-	SymbolName string
-	Belong     string
-	Class      int
-	Position   [2]int
-	Icon       string
+	SymbolName string `json:"board"`
+	Belong     string `json:"belong"`
+	Class      int    `json:"class"`
+	Position   [2]int `json:"postion"`
+	Icon       string `json:"icon"`
 }
 
-func InitChess(symbolName, belong string, class int, position [2]int, icon string) (*ChessMan, error) {
+func InitChessMan(symbolName, belong string, class int, position [2]int, icon string) (*ChessMan, error) {
 	if err := valiate(symbolName, belong, class, position); err != nil {
 		return nil, err
 	}
