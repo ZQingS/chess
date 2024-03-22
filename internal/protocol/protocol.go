@@ -3,6 +3,7 @@ package protocol
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 )
 
 type Receive struct {
@@ -21,6 +22,7 @@ func InitReceive(data []byte) *Receive {
 	res := gob.NewDecoder(buf)
 
 	if err := res.Decode(receive); err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 
@@ -33,6 +35,7 @@ func (r *Receive) ToByte() []byte {
 	enc := gob.NewEncoder(buf)
 
 	if err := enc.Encode(r); err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 
@@ -48,13 +51,11 @@ type Send struct {
 func InitSend(data []byte) *Send {
 	send := &Send{}
 
-	buf := bytes.NewBuffer([]byte{})
-
-	buf.Write(data)
-
+	buf := bytes.NewBuffer(data)
 	res := gob.NewDecoder(buf)
 
 	if err := res.Decode(send); err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 
@@ -67,6 +68,7 @@ func (s *Send) ToByte() []byte {
 	enc := gob.NewEncoder(buf)
 
 	if err := enc.Encode(s); err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 

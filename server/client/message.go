@@ -10,7 +10,7 @@ import (
 )
 
 func handleServerMessage(conn net.Conn) error {
-	var buf [128]byte
+	var buf [512]byte
 
 	n, err := conn.Read(buf[:])
 
@@ -18,13 +18,11 @@ func handleServerMessage(conn net.Conn) error {
 		return err
 	}
 
-	fmt.Println(string(buf[:n]))
-
 	send := protocol.InitSend(buf[:n])
 
 	fmt.Println(send.Msg)
 
-	if len(send.Board) > 0 {
+	if len(send.Board[0][0]) > 0 {
 		for _, v := range send.Board {
 			for _, c := range v {
 				fmt.Printf("|%s ", c)
@@ -79,9 +77,6 @@ func handleClientMessage(conn net.Conn, line string, sessionId string, belong st
 	_, err := conn.Write(serverReceive.ToByte())
 
 	return err
-	// if err != nil {
-	// 	fmt.Println("conn write err =", err)
-	// }
 }
 
 func handleLineMessage(reader *bufio.Reader) (string, bool) {

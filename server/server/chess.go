@@ -30,11 +30,11 @@ func NewORContinueGame(sessionId string) *board.Game {
 
 		var initBoard = &board.Board{}
 
-		initBoard.SetChesses(initbuffer.Data.Board)
+		resBoard := initBoard.SetChesses(initbuffer.Data.Board)
 
 		return &board.Game{
 			Chesses:     initbuffer.Data.Chesses,
-			ChesseBoard: initBoard,
+			ChesseBoard: resBoard,
 		}
 	} else {
 		return newGame()
@@ -44,17 +44,28 @@ func NewORContinueGame(sessionId string) *board.Game {
 func HandleBoardMessage(sessionId string, belong string, currentBoard [8][8]string, positionCommand string) [8][8]string {
 	var resBoard = &board.Board{}
 
-	if len(currentBoard) == 0 {
+	if len(currentBoard[0][0]) == 0 {
 		game := NewORContinueGame(sessionId)
 
 		resBoard = game.ChesseBoard
 	} else {
-		resBoard.SetChesses(currentBoard)
+		resBoard = resBoard.SetChesses(currentBoard)
 	}
 
-	if belong == "White" {
+	if belong == "W" {
 		return resBoard.GetChesses()
 	} else {
 		return resBoard.GetReverseChesses()
 	}
 }
+
+// func handlePostionCommand(positionCommand string) {
+
+// 	firstPostion := string(positionCommand[0])
+
+// 	runeArray := []rune(firstPostion)
+
+// 	if unicode.IsUpper(runeArray[0]) {
+
+// 	}
+// }
