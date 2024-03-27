@@ -8,44 +8,82 @@ import (
 	"github.com/ZQingS/chess/internal/protocol"
 )
 
-func process(conn net.Conn) {
-	var sessionId string
-	var belong string
-	var board [8][8]string
+func resolveReceive(conn net.Conn) (*protocol.Receive, error) {
+	receive := &protocol.Receive{}
+
+	reader := bufio.NewReader(conn)
+
+	var buf [128]byte
+
+	n, err := reader.Read(buf[:])
+
+	if err != nil {
+		return receive, err
+	}
+
+	receive = handleClientMessage(buf[:n])
+
+	return receive, nil
+}
+
+func process(conn net.Conn, bufferPools chan string) {
+	currentProcess := &Process{}
 
 	defer conn.Close()
 
 	for {
-		reader := bufio.NewReader(conn)
-
-		var buf [128]byte
-
-		n, err := reader.Read(buf[:])
+		receive, err := resolveReceive(conn)
 
 		if err != nil {
-			fmt.Println("read from conn failed, err: ", err)
+			fmt.Println("conn err =", err)
+
 			break
 		}
 
-		res, ok, currentSessionId, currentBelong, currentBoard := handleClientMessage(buf[:n], sessionId, belong, board)
-		sessionId = currentSessionId
-		belong = currentBelong
-		board = currentBoard
+		currentProcess.receive = receive
 
-		_, err = conn.Write(res)
+		if quit := currentProcess.HandleQuitMessage(); !quit {
+			currentProcess.HandleSessionMessage()
+			currentProcess.HandleBelongMessage()
 
-		if !ok {
-			break
+			readyChanPool := currentProcess.HandleReadyChanPool()
+
+			if len(readyChanPool) > 0 {
+				if currentProcess.Start == 0 {
+					// buffer := []string{}
+
+					// for date := range bufferPools {
+					// 	buffer
+					// }
+
+					for date := range bufferPools {
+						bufferPools <- date
+
+						if currentProcess.HaveOtherReadyChanPool(date) {
+							currentProcess.HandleSatrtMessage(true)
+						}
+					}
+
+					bufferPools <- readyChanPool
+				}
+
+				currentProcess.HandleBoardMessage()
+			}
 		}
 
+		_, err = conn.Write(currentProcess.CurrentSend.ToByte())
+
 		if err != nil {
-			fmt.Println("Write from conn failed, err: ", err)
+			fmt.Println("conn write err =", err)
+
 			break
 		}
 	}
 }
 
 func main() {
+	bufferPools := make(chan string)
+
 	listen, err := net.Listen("tcp", "127.0.0.1:9090")
 
 	if err != nil {
@@ -63,53 +101,12 @@ func main() {
 			continue
 		}
 
-		go process(conn)
+		go process(conn, bufferPools)
 	}
 }
 
-func handleClientMessage(btyes []byte, sessionId, belong string, board [8][8]string) ([]byte, bool, string, string, [8][8]string) {
+func handleClientMessage(btyes []byte) *protocol.Receive {
 	receive := protocol.InitReceive(btyes)
-	var msg string
-	var connect bool = true
-	var ok string = "true"
 
-	switch receive.Action {
-	case "quit":
-		msg = "Quit the Game"
-		connect = false
-		ok = "false"
-
-	case "belong":
-		belong = receive.Belong
-
-		board = HandleBoardMessage(sessionId, belong, board, "")
-
-		msg = "Choose Belong"
-	case "session":
-		sessionId = receive.SessionID
-
-		msg = "Get Session"
-	case "other":
-		msg = "Error Command"
-	case "position":
-		board = HandleBoardMessage(sessionId, belong, board, receive.Position)
-
-		msg = fmt.Sprintf("Last Command is %s", receive.Position)
-	default:
-		msg = "Error Command"
-	}
-
-	res := handleSendMessage(msg, ok, board)
-
-	return res, connect, sessionId, belong, board
-}
-
-func handleSendMessage(msg string, ok string, Board [8][8]string) []byte {
-	send := &protocol.Send{
-		OK:    ok,
-		Msg:   msg,
-		Board: Board,
-	}
-
-	return send.ToByte()
+	return receive
 }

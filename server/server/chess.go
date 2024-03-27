@@ -41,24 +41,6 @@ func NewORContinueGame(sessionId string) *board.Game {
 	}
 }
 
-func HandleBoardMessage(sessionId string, belong string, currentBoard [8][8]string, positionCommand string) [8][8]string {
-	var resBoard = &board.Board{}
-
-	if len(currentBoard[0][0]) == 0 {
-		game := NewORContinueGame(sessionId)
-
-		resBoard = game.ChesseBoard
-	} else {
-		resBoard = resBoard.SetChesses(currentBoard)
-	}
-
-	if belong == "W" {
-		return resBoard.GetChesses()
-	} else {
-		return resBoard.GetReverseChesses()
-	}
-}
-
 // func handlePostionCommand(positionCommand string) {
 
 // 	firstPostion := string(positionCommand[0])
