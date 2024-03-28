@@ -9,7 +9,7 @@ import (
 	"github.com/ZQingS/chess/internal/protocol"
 )
 
-func handleServerMessage(conn net.Conn) error {
+func HandleServerMessage(conn net.Conn) error {
 	var buf [512]byte
 
 	n, err := conn.Read(buf[:])

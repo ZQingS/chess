@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	ch := make(chan int, 1)
+
 	conn, err := net.Dial("tcp", "127.0.0.1:9090")
 
 	if err != nil {
@@ -21,6 +23,16 @@ func main() {
 
 	var sessionId string
 	var belong string
+
+	go func() {
+		for {
+			<-ch
+
+			if err := HandleServerMessage(conn); err != nil {
+				fmt.Println("HandleServerMessage err ", err)
+			}
+		}
+	}()
 
 	for {
 		var pre string
@@ -40,11 +52,18 @@ func main() {
 			after = fmt.Sprintf("%s> ", belong)
 		}
 
+		if len(sessionId) > 0 && len(belong) > 0 {
+			ch <- 1
+		}
+
 		fmt.Print(pre, after)
 
 		if line, ok := handleLineMessage(reader); !ok {
 			break
 		} else {
+			if len(line) == 0 {
+				continue
+			}
 			currentSessionId := sessionId
 			sessionId = handleSessionIdMessage(line, sessionId)
 			belong = handleBelongIdMessage(line, belong, currentSessionId)
@@ -54,8 +73,8 @@ func main() {
 				break
 			}
 
-			if err := handleServerMessage(conn); err != nil {
-				fmt.Println("conn server err =", err)
+			if err := HandleServerMessage(conn); err != nil {
+				fmt.Println("HandleServerMessage err ", err)
 				break
 			}
 		}

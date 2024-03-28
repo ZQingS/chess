@@ -8,6 +8,8 @@ import (
 	"github.com/ZQingS/chess/internal/protocol"
 )
 
+var processMap = make(map[string]*GameProcess)
+
 func resolveReceive(conn net.Conn) (*protocol.Receive, error) {
 	receive := &protocol.Receive{}
 
@@ -26,13 +28,38 @@ func resolveReceive(conn net.Conn) (*protocol.Receive, error) {
 	return receive, nil
 }
 
-func process(conn net.Conn, bufferPools chan string) {
+func msgSendToOther(process *Process) {
+	gameprocess := processMap[process.SessionID]
+
+	var oatherProcess Process
+
+	if process.Belong == "W" {
+		oatherProcess = gameprocess.Black
+	} else {
+		oatherProcess = gameprocess.White
+	}
+
+	bytes := oatherProcess.CurrentSend.ToByte()
+
+	fmt.Println(oatherProcess.ConnPool)
+
+	_, err := oatherProcess.ConnPool.Write(bytes)
+
+	if err != nil {
+		fmt.Println("conn msgSendToOther err =", err)
+	}
+}
+
+func process(conn net.Conn) {
 	currentProcess := &Process{}
+	currentProcess.ConnPool = conn
+	fmt.Println(conn)
 
 	defer conn.Close()
 
 	for {
 		receive, err := resolveReceive(conn)
+		send := &protocol.Send{}
 
 		if err != nil {
 			fmt.Println("conn err =", err)
@@ -41,33 +68,23 @@ func process(conn net.Conn, bufferPools chan string) {
 		}
 
 		currentProcess.receive = receive
+		currentProcess.CurrentSend = send
 
 		if quit := currentProcess.HandleQuitMessage(); !quit {
 			currentProcess.HandleSessionMessage()
 			currentProcess.HandleBelongMessage()
 
-			readyChanPool := currentProcess.HandleReadyChanPool()
-
-			if len(readyChanPool) > 0 {
-				if currentProcess.Start == 0 {
-					// buffer := []string{}
-
-					// for date := range bufferPools {
-					// 	buffer
-					// }
-
-					for date := range bufferPools {
-						bufferPools <- date
-
-						if currentProcess.HaveOtherReadyChanPool(date) {
-							currentProcess.HandleSatrtMessage(true)
-						}
-					}
-
-					bufferPools <- readyChanPool
+			if readyChanPool := currentProcess.HandleReadyChanPool(); readyChanPool {
+				if processMap[currentProcess.SessionID] == nil {
+					processMap[currentProcess.SessionID] = &GameProcess{}
 				}
 
-				currentProcess.HandleBoardMessage()
+				processMap[currentProcess.SessionID].InitProcess(currentProcess)
+
+				if processMap[currentProcess.SessionID].StartPlay() {
+					processMap[currentProcess.SessionID].HandleBoardMessage(currentProcess.Belong, currentProcess.SessionID)
+					msgSendToOther(currentProcess)
+				}
 			}
 		}
 
@@ -82,8 +99,6 @@ func process(conn net.Conn, bufferPools chan string) {
 }
 
 func main() {
-	bufferPools := make(chan string)
-
 	listen, err := net.Listen("tcp", "127.0.0.1:9090")
 
 	if err != nil {
@@ -101,7 +116,7 @@ func main() {
 			continue
 		}
 
-		go process(conn, bufferPools)
+		go process(conn)
 	}
 }
 
