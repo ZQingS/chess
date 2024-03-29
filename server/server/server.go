@@ -40,10 +40,16 @@ func msgSendToOther(process *Process) {
 	}
 
 	bytes := oatherProcess.CurrentSend.ToByte()
-
-	fmt.Println(oatherProcess.ConnPool)
-
 	_, err := oatherProcess.ConnPool.Write(bytes)
+
+	if err != nil {
+		fmt.Println("conn msgSendToOther err =", err)
+	}
+}
+
+func msgSendToClient(process *Process) {
+	bytes := process.CurrentSend.ToByte()
+	_, err := process.ConnPool.Write(bytes)
 
 	if err != nil {
 		fmt.Println("conn msgSendToOther err =", err)
@@ -53,9 +59,11 @@ func msgSendToOther(process *Process) {
 func process(conn net.Conn) {
 	currentProcess := &Process{}
 	currentProcess.ConnPool = conn
-	fmt.Println(conn)
 
-	defer conn.Close()
+	currentProcess.HandleFirstConnectMessage()
+	msgSendToClient(currentProcess)
+
+	defer close(conn)
 
 	for {
 		receive, err := resolveReceive(conn)
@@ -98,6 +106,16 @@ func process(conn net.Conn) {
 	}
 }
 
+func handleClientMessage(btyes []byte) *protocol.Receive {
+	receive := protocol.InitReceive(btyes)
+
+	return receive
+}
+
+func close(conn net.Conn) {
+	conn.Close()
+}
+
 func main() {
 	listen, err := net.Listen("tcp", "127.0.0.1:9090")
 
@@ -118,10 +136,4 @@ func main() {
 
 		go process(conn)
 	}
-}
-
-func handleClientMessage(btyes []byte) *protocol.Receive {
-	receive := protocol.InitReceive(btyes)
-
-	return receive
 }

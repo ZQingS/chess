@@ -73,6 +73,15 @@ func (g *Process) HandleReadyChanPool() bool {
 	return false
 }
 
+func (g *Process) HandleFirstConnectMessage() {
+	send := &protocol.Send{}
+	send.OK = "true"
+	send.Msg = "Choose Your SessionID, Please Insert Like `Room1234`"
+	send.EndPoint = "NoSessionID My> "
+
+	g.CurrentSend = send
+}
+
 func (g *Process) HandleQuitMessage() bool {
 	if g.receive.Action == "quit" {
 		g.CurrentSend.OK = "false"
@@ -89,6 +98,7 @@ func (g *Process) HandleBelongMessage() {
 		g.Belong = g.receive.Belong
 		g.CurrentSend.OK = "true"
 		g.CurrentSend.Msg = fmt.Sprintf("Choose Belong %s", g.Belong)
+		g.CurrentSend.EndPoint = fmt.Sprintf("SessionID %s %s > ", g.SessionID, g.Belong)
 	}
 }
 
@@ -96,6 +106,7 @@ func (g *Process) HandleSessionMessage() {
 	if g.receive.Action == "session" {
 		g.SessionID = g.receive.SessionID
 		g.CurrentSend.OK = "true"
-		g.CurrentSend.Msg = fmt.Sprintf("Join The Game %s, Wait Other", g.SessionID)
+		g.CurrentSend.Msg = fmt.Sprintf("Join The Game %s\nChoose Your Belong, Please W OR B, White OR BLACK? (W/B)", g.SessionID)
+		g.CurrentSend.EndPoint = fmt.Sprintf("SessionID %s My > ", g.SessionID)
 	}
 }
