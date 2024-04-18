@@ -31,8 +31,12 @@ func main() {
 	go func() {
 		for {
 			if connClose == 0 {
-				if err := HandleServerMessage(conn); err != nil {
+				if err := HandleServerMessage(conn, receive); err != nil {
 					fmt.Println("HandleServerMessage err ", err)
+
+					connClose = 1
+
+					break
 				}
 			}
 		}
@@ -40,6 +44,10 @@ func main() {
 
 	for {
 		lineDoStatus := true
+
+		if connClose == 1 {
+			break
+		}
 
 		if line, ok := handleLineMessage(reader); !ok {
 			break

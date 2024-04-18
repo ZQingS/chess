@@ -28,31 +28,12 @@ func resolveReceive(conn net.Conn) (*protocol.Receive, error) {
 	return receive, nil
 }
 
-func msgSendToOther(process *Process) {
-	gameprocess := processMap[process.SessionID]
-
-	var oatherProcess Process
-
-	if process.Belong == "W" {
-		oatherProcess = gameprocess.Black
-	} else {
-		oatherProcess = gameprocess.White
-	}
-
-	bytes := oatherProcess.CurrentSend.ToByte()
-	_, err := oatherProcess.ConnPool.Write(bytes)
-
-	if err != nil {
-		fmt.Println("conn msgSendToOther err =", err)
-	}
-}
-
 func msgSendToClient(process *Process) {
 	bytes := process.CurrentSend.ToByte()
 	_, err := process.ConnPool.Write(bytes)
 
 	if err != nil {
-		fmt.Println("conn msgSendToOther err =", err)
+		fmt.Println("conn msgSendToClient err =", err)
 	}
 }
 
@@ -78,31 +59,45 @@ func process(conn net.Conn) {
 		currentProcess.receive = receive
 		currentProcess.CurrentSend = send
 
-		if quit := currentProcess.HandleQuitMessage(); !quit {
-			currentProcess.HandleSessionMessage()
-			currentProcess.HandleBelongMessage()
+		if err, quit := currentProcess.HandleQuitMessage(); !quit {
+			if err != nil {
+				break
+			}
+			if err = currentProcess.HandleOtherMessage(); err != nil {
+				break
+			}
+			if err = currentProcess.HandleSessionMessage(); err != nil {
+				break
+			}
+
+			if processMap[currentProcess.SessionID] == nil {
+				processMap[currentProcess.SessionID] = &GameProcess{}
+			}
+
+			if len(receive.Belong) > 0 && len(currentProcess.Belong) == 0 {
+				if hasBelong := processMap[currentProcess.SessionID].HasChooseBelongInGame(receive.Belong); !hasBelong {
+					if currentProcess.HandleBelongMessage(); err != nil {
+						break
+					}
+				} else {
+					if currentProcess.HandlePossessiveMessage(); err != nil {
+						break
+					}
+				}
+			}
 
 			if readyChanPool := currentProcess.HandleReadyChanPool(); readyChanPool {
-				if processMap[currentProcess.SessionID] == nil {
-					processMap[currentProcess.SessionID] = &GameProcess{}
-				}
-
 				processMap[currentProcess.SessionID].InitProcess(currentProcess)
 
 				if processMap[currentProcess.SessionID].StartPlay() {
-					processMap[currentProcess.SessionID].HandleBoardMessage(currentProcess.Belong, currentProcess.SessionID)
-					msgSendToOther(currentProcess)
+					processMap[currentProcess.SessionID].HandlePositionMessage(currentProcess.Belong, receive.Action, receive.Position)
+					processMap[currentProcess.SessionID].HandleBoardMessage(currentProcess.SessionID, receive.Action)
+				} else {
+					currentProcess.HandleWaitMessage()
 				}
 			}
 		}
 
-		_, err = conn.Write(currentProcess.CurrentSend.ToByte())
-
-		if err != nil {
-			fmt.Println("conn write err =", err)
-
-			break
-		}
 	}
 }
 

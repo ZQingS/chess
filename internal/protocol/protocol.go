@@ -93,10 +93,21 @@ func (r *Receive) HandleClientOtherMessage(line string, lineDoStatus bool) {
 	}
 }
 
+func (r *Receive) HandleCallBackMessage(action string) {
+	if strings.Contains(action, "revert:sessionId") {
+		r.SessionID = ""
+	}
+
+	if strings.Contains(action, "revert:belong") {
+		r.Belong = ""
+	}
+}
+
 type Send struct {
 	OK       string
 	Msg      string
 	Board    [8][8]string
+	Action   string // revert:sessionId, revert:belong
 	EndPoint string
 }
 

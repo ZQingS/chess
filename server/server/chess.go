@@ -40,14 +40,3 @@ func NewORContinueGame(sessionId string) *board.Game {
 		return newGame()
 	}
 }
-
-// func handlePostionCommand(positionCommand string) {
-
-// 	firstPostion := string(positionCommand[0])
-
-// 	runeArray := []rune(firstPostion)
-
-// 	if unicode.IsUpper(runeArray[0]) {
-
-// 	}
-// }

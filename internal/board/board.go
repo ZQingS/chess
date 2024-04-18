@@ -24,8 +24,22 @@ func (b *Board) SetChesses(chesses [8][8]string) *Board {
 	}
 }
 
-func (b *Board) MoveChess(startX, startY int, endPostion [2]int, chess string) *Board {
-	b.RemoveChess(startX, startY)
+func (b *Board) HandlePostionCommand(positionCommand string) [8][8]string {
+	// firstPostion := string(positionCommand[0])
+
+	// runeArray := []rune(firstPostion)
+
+	// if unicode.IsUpper(runeArray[0]) {
+
+	// }
+
+	return b.GetChesses()
+}
+
+func (b *Board) MoveChess(startX, startY int, endPostion [2]int) *Board {
+	chess := b.chesses[startX-1][startY-1]
+
+	b.RemoveChess(startX-1, startY-1)
 	b.SetChess(endPostion, chess)
 
 	return b

@@ -9,7 +9,7 @@ import (
 	"github.com/ZQingS/chess/internal/protocol"
 )
 
-func HandleServerMessage(conn net.Conn) error {
+func HandleServerMessage(conn net.Conn, receive *protocol.Receive) error {
 	var buf [512]byte
 
 	n, err := conn.Read(buf[:])
@@ -21,7 +21,6 @@ func HandleServerMessage(conn net.Conn) error {
 	send := protocol.InitSend(buf[:n])
 
 	fmt.Println(send.Msg)
-	fmt.Printf(send.EndPoint)
 
 	if len(send.Board[0][0]) > 0 {
 		for _, v := range send.Board {
@@ -31,6 +30,10 @@ func HandleServerMessage(conn net.Conn) error {
 			fmt.Println("|")
 		}
 	}
+
+	fmt.Printf(send.EndPoint)
+
+	receive.HandleCallBackMessage(send.Action)
 
 	return nil
 }
